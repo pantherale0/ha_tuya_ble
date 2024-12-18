@@ -22,22 +22,13 @@ from homeassistant.components.tuya.const import (
     TUYA_RESPONSE_RESULT,
     TUYA_RESPONSE_SUCCESS,
 )
-from homeassistant.helpers.entity import DeviceInfo, EntityDescription
-from homeassistant.helpers.update_coordinator import (
-    CoordinatorEntity,
-    DataUpdateCoordinator,
-)
-
 from tuya_iot import (
     TuyaOpenAPI,
     AuthType,
-    TuyaOpenMQ,
-    TuyaDeviceManager,
 )
 
 from .tuya_ble import (
     AbstaractTuyaBLEDeviceManager,
-    TuyaBLEDevice,
     TuyaBLEDeviceCredentials,
 )
 

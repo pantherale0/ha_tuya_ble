@@ -6,7 +6,6 @@ from dataclasses import dataclass
 import logging
 
 from homeassistant.components.cover import (
-    CoverEntityDescription,
     CoverEntityFeature,
     CoverEntity,
     STATE_CLOSED,
@@ -14,12 +13,14 @@ from homeassistant.components.cover import (
     ATTR_POSITION
 )
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import DOMAIN
 from .devices import TuyaBLEData, TuyaBLEEntity, TuyaBLEProductInfo
+from .device_registry import get_mapping_by_device
 from .tuya_ble import TuyaBLEDataPointType, TuyaBLEDevice
 
 _LOGGER = logging.getLogger(__name__)
@@ -28,97 +29,6 @@ TUYA_COVER_STATE_MAP = {
     0: STATE_OPEN,
     2: STATE_CLOSED
 }
-
-@dataclass
-class TuyaBLECoverMapping:
-    description: CoverEntityDescription
-
-    cover_state_dp_id: int = 0
-    cover_position_dp_id: int = 0
-    cover_opening_mode_dp_id: int = 0
-    cover_work_state_dp_id: int = 0
-    cover_battery_dp_id: int = 0
-    cover_motor_direction_dp_id: int = 0
-    cover_set_upper_limit_dp_id: int = 0
-    cover_factory_reset_dp_id: int = 0
-    cover_position_set_dp: int = 0
-
-
-@dataclass
-class TuyaBLECategoryCoverMapping:
-    products: dict[str, list[TuyaBLECoverMapping]] | None = None
-    mapping: list[TuyaBLECoverMapping] | None = None
-
-
-# Blind Controller
-# - [X] 1   - State (0=open, 1=stop, 2=close)
-# - [X] 2   - Position (SET)
-# - [X] 3   - Position (RAW)
-# - [ ] 4   - Opening Mode
-# - [ ] 5   - UNKNOWN?
-# - [X] 7   - Work State (0=stdby, 1=success, 2=learning)
-# - [X] 13  - Battery
-# - [ ] 101 - Direction
-# - [ ] 102 - Upper Limit
-# - [ ] 103 - UNKNOWN? DT_BOOL
-# - [ ] 104 - UNKNOWN? DT_BOOL
-# - [X] 105 - Speed
-# - [ ] 107 - Reset
-
-# Curtain Controller
-# - [X] 1   - State (0=open, 1=stop, 2=close)
-# - [X] 2   - Position Set
-# - [X] 3   - Position (RAW)
-# - [X] 13  - Battery (RAW)
-
-
-mapping: dict[str, TuyaBLECategoryCoverMapping] = {
-    "cl": TuyaBLECategoryCoverMapping(
-        products={
-            **dict.fromkeys([
-                "4pbr8eig", "qqdxfdht", "kcy0xpi"
-            ],
-            [TuyaBLECoverMapping( # BLE Blind Controller
-                description=CoverEntityDescription(
-                    key="ble_blind_controller",
-                ),
-                cover_state_dp_id=1,
-                cover_position_set_dp=2,
-                cover_position_dp_id=3,
-                cover_opening_mode_dp_id=4,
-                cover_work_state_dp_id=7,
-                cover_battery_dp_id=13,
-                cover_motor_direction_dp_id=101,
-                cover_set_upper_limit_dp_id=102,
-                cover_factory_reset_dp_id=107
-            )]),
-            # "...": [TuyaBLECoverMapping(
-            #     description=CoverEntityDescription(
-            #         key="ble_curtain_controller"
-            #     ),
-            #     cover_state_dp_id=1,
-            #     cover_position_dp_id=3,
-            #     cover_position_set_dp=2,
-            #     cover_battery_dp_id=13
-            # )] # https://github.com/PlusPlus-ua/ha_tuya_ble/issues/126
-        },
-    ),
-}
-
-
-def get_mapping_by_device(device: TuyaBLEDevice) -> list[TuyaBLECategoryCoverMapping]:
-    category = mapping.get(device.category)
-    if category is not None and category.products is not None:
-        product_mapping = category.products.get(device.product_id)
-        if product_mapping is not None:
-            return product_mapping
-        if category.mapping is not None:
-            return category.mapping
-        else:
-            return []
-    else:
-        return []
-
 
 class TuyaBLECover(TuyaBLEEntity, CoverEntity):
     """Representation of a Tuya BLE Cover."""
@@ -132,22 +42,22 @@ class TuyaBLECover(TuyaBLEEntity, CoverEntity):
         coordinator: DataUpdateCoordinator,
         device: TuyaBLEDevice,
         product: TuyaBLEProductInfo,
-        mapping: TuyaBLECoverMapping,
     ) -> None:
-        super().__init__(hass, coordinator, device, product, mapping.description)
-        self._mapping = mapping
+        super().__init__(hass, coordinator, device, product)
 
     @property
     def supported_features(self) -> CoverEntityFeature:
         """Return the supported features of the device."""
-        return CoverEntityFeature.CLOSE|CoverEntityFeature.OPEN|CoverEntityFeature.SET_POSITION|CoverEntityFeature.STOP
+        return self._product.datapoints[Platform.COVER].get("supported_features")
 
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
         _LOGGER.debug("Updated data for %s: %s", self._device.name, self._device.datapoints)
-        if self._mapping.cover_state_dp_id != 0:
-            datapoint = self._device.datapoints[self._mapping.cover_state_dp_id]
+        cover_state_dp = self.get_tuya_datapoint("state")
+        cover_position_dp = self.get_tuya_datapoint("current_position")
+        if cover_state_dp:
+            datapoint = self._device.datapoints[cover_state_dp]
             if datapoint:
                 if datapoint.value == 0:
                     self._attr_is_opening = True
@@ -157,8 +67,8 @@ class TuyaBLECover(TuyaBLEEntity, CoverEntity):
                 if datapoint.value == 2:
                     self._attr_is_closing = True
 
-        if self._mapping.cover_position_dp_id != 0:
-            datapoint = self._device.datapoints[self._mapping.cover_position_dp_id]
+        if cover_position_dp:
+            datapoint = self._device.datapoints[cover_position_dp]
             if datapoint:
                 self._attr_current_cover_position = 100 - int(datapoint.value) # reverse position
                 if self._attr_current_cover_position == 0:
@@ -178,9 +88,9 @@ class TuyaBLECover(TuyaBLEEntity, CoverEntity):
 
     async def async_stop_cover(self, **kwargs: logging.Any) -> None:
         """Stop a cover."""
-        if self._mapping.cover_state_dp_id != 0:
+        if self.get_tuya_datapoint("state"):
             datapoint = self._device.datapoints.get_or_create(
-                self._mapping.cover_state_dp_id,
+                self.get_tuya_datapoint("state"),
                 TuyaBLEDataPointType.DT_VALUE,
                 1,
             )
@@ -198,9 +108,9 @@ class TuyaBLECover(TuyaBLEEntity, CoverEntity):
     async def async_set_cover_position(self, **kwargs: logging.Any) -> None:
         """Set cover position"""
         position = 100 - kwargs[ATTR_POSITION]
-        if self._mapping.cover_position_set_dp != 0:
+        if self.get_tuya_datapoint("position"):
             datapoint = self._device.datapoints.get_or_create(
-                self._mapping.cover_position_set_dp,
+                self.get_tuya_datapoint("position"),
                 TuyaBLEDataPointType.DT_VALUE,
                 position
             )
@@ -216,15 +126,16 @@ async def async_setup_entry(
     """Set up the Tuya BLE sensors."""
     data: TuyaBLEData = hass.data[DOMAIN][entry.entry_id]
     mappings = get_mapping_by_device(data.device)
+    datapoints = mappings.datapoints.get(Platform.COVER)
     entities: list[TuyaBLECover] = []
-    for mapping in mappings:
-        entities.append(
-            TuyaBLECover(
-                hass,
-                data.coordinator,
-                data.device,
-                data.product,
-                mapping,
-            )
+    if datapoints is None:
+        return
+    entities.append(
+        TuyaBLECover(
+            hass,
+            data.coordinator,
+            data.device,
+            data.product,
         )
+    )
     async_add_entities(entities)

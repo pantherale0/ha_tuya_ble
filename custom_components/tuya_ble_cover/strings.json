@@ -1,0 +1,94 @@
+{
+  "config": {
+    "abort": {
+      "no_unconfigured_devices": "No unconfigured devices found."
+    },
+    "error": {
+      "device_not_registered": "Device is not registered in Tuya cloud",
+      "invalid_auth": "[%key:common::config_flow::error::invalid_auth%]",
+      "login_error": "Login error ({code}): {msg}"
+    },
+    "flow_title": "{name}",
+    "step": {
+      "device": {
+        "data": {
+          "address": "Tuya BLE device"
+        },
+        "description": "Select Tuya BLE device to setup. Device must be registered in the cloud using the mobile application. It's better to unbind the device from Tuya Bluetooth gateway, if any."
+      },
+      "login": {
+        "data": {
+          "access_id": "Tuya IoT Access ID",
+          "access_secret": "Tuya IoT Access Secret",
+          "country_code": "Country",
+          "password": "[%key:common::config_flow::data::password%]",
+          "username": "Account"
+        },
+        "description": "Tuya BLE requires obtaining encryption key from Tuya cloud. Almost all devices only need to access the cloud once during setup.\n\nRefer to documentation of Tuya integration to retrive the cloud credentials https://www.home-assistant.io/integrations/tuya/\n\nEnter your Tuya credentials."
+      }
+    }
+  },
+  "entity": {
+    "number": {
+      "cover_speed": {
+        "name": "Motor Speed"
+      }
+    },
+    "binary_sensor": {
+      "low_battery": {
+        "name": "[%key:component::sensor::entity_component::battery::name%]"
+      }
+    },
+    "sensor": {
+      "battery": {
+        "name": "[%key:component::sensor::entity_component::battery::name%]"
+      },
+      "battery_charging": {
+        "name": "Battery charging",
+        "state": {
+          "charged": "Charged",
+          "charging": "[%key:component::binary_sensor::entity_component::battery_charging::state::on%]",
+          "not_charging": "[%key:component::binary_sensor::entity_component::battery_charging::state::off%]"
+        }
+      },
+      "battery_state": {
+        "name": "Battery state",
+        "state": {
+          "high": "High",
+          "low": "[%key:component::binary_sensor::entity_component::battery::state::on%]",
+          "normal": "[%key:component::binary_sensor::entity_component::battery::state::off%]"
+        }
+      },
+      "cover_work_state": {
+        "name": "Current State"
+      }
+    },
+    "cover": {
+      "ble_blind_controller": {
+        "name": "Blind Motor"
+      },
+      "ble_curtain_controller": {
+        "name": "Curtain Motor"
+      }
+    }
+  },
+  "options": {
+    "error": {
+      "device_not_registered": "Device is not registered in Tuya cloud",
+      "invalid_auth": "[%key:common::config_flow::error::invalid_auth%]",
+      "login_error": "Login error ({code}): {msg}"
+    },
+    "step": {
+      "login": {
+        "data": {
+          "access_id": "Tuya IoT Access ID",
+          "access_secret": "Tuya IoT Access Secret",
+          "country_code": "Country",
+          "password": "[%key:common::config_flow::data::password%]",
+          "username": "Account"
+        },
+        "description": "Refer to documentation of Tuya integration to retrive the cloud credentials https://www.home-assistant.io/integrations/tuya/\n\nEnter your Tuya credentials."
+      }
+    }
+  }
+}

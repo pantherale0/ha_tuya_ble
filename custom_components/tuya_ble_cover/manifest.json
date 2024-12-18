@@ -1,5 +1,5 @@
 {
-  "domain": "tuya_ble",
+  "domain": "tuya_ble_cover",
   "name": "Tuya BLE",
   "bluetooth": [
     {
@@ -7,10 +7,10 @@
       "service_data_uuid": "0000a201-0000-1000-8000-00805f9b34fb"
     }
   ],
-  "codeowners": ["@PlusPlus-ua"],
+  "codeowners": ["@pantherale0"],
   "config_flow": true,
   "dependencies": ["bluetooth_adapters", "tuya"],
-  "documentation": "https://www.home-assistant.io/integrations/tuya_ble",
+  "documentation": "https://www.home-assistant.io/integrations/tuya_ble_cover",
   "requirements": ["tuya-iot-py-sdk==0.6.6", "pycountry>23.0.0"],
   "iot_class": "local_push",
   "version": "0.1.8"
