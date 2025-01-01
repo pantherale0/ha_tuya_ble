@@ -183,8 +183,10 @@ class TuyaBLECover(TuyaBLEEntity, CoverEntity):
                 if self._attr_current_cover_position == 0:
                     self._attr_is_closed = True
                     self._attr_is_closing = False
-                if self._attr_current_cover_position == 100:
+                else:
                     self._attr_is_closed = False
+
+                if self._attr_current_cover_position == 100:
                     self._attr_is_opening = False
 
         self.async_write_ha_state()
