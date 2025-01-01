@@ -7,6 +7,7 @@ import secrets
 import time
 from collections.abc import Callable
 from struct import pack, unpack
+from typing import Any, Hashable
 
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
@@ -62,6 +63,9 @@ class TuyaBLEDataPoint:
         self._value = value
         self._changed_by_device = False
         self._update_from_device(timestamp, flags, type, value)
+
+    def __repr__(self) -> str:
+        return f"<TuyaBLEDataPoint id={self.id} timestamp={self.timestamp} type={self.type} flags={self.flags} value={self.value}>"
 
     def _update_from_device(
         self,
@@ -421,6 +425,17 @@ class TuyaBLEDevice:
     def datapoints(self) -> TuyaBLEDataPoints:
         """Get datapoints exposed by device."""
         return self._datapoints
+
+    @property
+    def datapoint_log_payload(self) -> dict[Hashable, Any]:
+        item = {}
+        for key, value in self.datapoints.__dict__().items():
+            if isinstance(value, TuyaBLEDataPoint):
+                printable_value = value.value
+            else:
+                printable_value = value
+            item[key] = printable_value
+        return item
 
     def get_or_create_datapoint(
         self,
