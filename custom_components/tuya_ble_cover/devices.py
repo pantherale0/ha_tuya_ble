@@ -5,7 +5,6 @@ from dataclasses import dataclass
 import logging
 
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
-from homeassistant.const import Platform
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.entity import (
     DeviceInfo,
@@ -85,9 +84,9 @@ class TuyaBLEEntity(CoordinatorEntity):
         """Handle updated data from the coordinator."""
         self.async_write_ha_state()
 
-    def get_tuya_datapoint(self, datapoint):
+    def get_tuya_datapoint(self, datapoint, platform) -> int:
         """Return a datapoint from config."""
-        return self._product.datapoints[Platform.COVER].get(datapoint)
+        return self._product.datapoints.get(platform, {}).get(datapoint, 0)
 
 class TuyaBLECoordinator(DataUpdateCoordinator[None]):
     """Data coordinator for receiving Tuya BLE updates."""

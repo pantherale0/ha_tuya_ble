@@ -12,7 +12,8 @@ from homeassistant.helpers.entity import (
 
 from .tuya_ble import TuyaBLEDevice
 from .const import (
-    DEVICE_DEF_MANUFACTURER
+    DEVICE_DEF_MANUFACTURER,
+    SENSOR_BATTERY_LEVEL_ENTITY
 )
 
 @dataclass
@@ -20,7 +21,7 @@ class TuyaBLEProductInfo:
     """Store a product info."""
     name: str
     manufacturer: str = DEVICE_DEF_MANUFACTURER
-    datapoints: dict[Platform, dict[str, int]] = {}
+    datapoints: dict[Platform, dict[str, int] | list[dict[str, int]]] = {}
     entity_description: EntityDescription
 
 @dataclass
@@ -42,29 +43,30 @@ devices_database: dict[str, TuyaBLECategoryInfo] = {
                         key="ble_blind_controller"
                     ),
                     datapoints={
-                        "cover_state_dp_id": {
-                            Platform.COVER: {
-                                "state": 1,
-                                "position_set": 2,
-                                "current_position": 3,
-                                "supported_features": (
-                                    CoverEntityFeature.OPEN|CoverEntityFeature.CLOSE|
-                                    CoverEntityFeature.SET_POSITION
-                                )
-                            },
-                            Platform.SENSOR: {
-                                "battery_level": 13,
-                            },
-                            None: {
-                                "unknown_1": 5,
-                                "unknown_2": 103,
-                                "unknown_3": 104,
-                                "opening_mode": 4,
-                                "work_state": 7,
-                                "motor_direction": 101,
-                                "set_upper_limit": 102,
-                                "factory_reset": 107,
+                        Platform.COVER: {
+                            "state": 1,
+                            "position_set": 2,
+                            "current_position": 3,
+                            "supported_features": (
+                                CoverEntityFeature.OPEN|CoverEntityFeature.CLOSE|
+                                CoverEntityFeature.SET_POSITION|CoverEntityFeature.STOP
+                            )
+                        },
+                        Platform.SENSOR: [
+                            {
+                                "state": 13,
+                                "entity_config_key": SENSOR_BATTERY_LEVEL_ENTITY
                             }
+                        ],
+                        None: {
+                            "unknown_1": 5,
+                            "unknown_2": 103,
+                            "unknown_3": 104,
+                            "opening_mode": 4,
+                            "work_state": 7,
+                            "motor_direction": 101,
+                            "set_upper_limit": 102,
+                            "factory_reset": 107,
                         }
                     }
                 )
@@ -80,16 +82,33 @@ devices_database: dict[str, TuyaBLECategoryInfo] = {
                     ),
                     datapoints={
                         Platform.COVER: {
-                            "state": 7,
+                            "state": 1,
                             "current_position": 3,
                             "position_set": 2,
                             "supported_features": (
                                 CoverEntityFeature.OPEN|CoverEntityFeature.CLOSE|
-                                CoverEntityFeature.SET_POSITION
+                                CoverEntityFeature.SET_POSITION|CoverEntityFeature.STOP
                             )
                         },
-                        Platform.SENSOR: {
-                            "battery_level": 13,
+                        Platform.SENSOR: [
+                            {
+                                "state": 13,
+                                "entity_config_key": SENSOR_BATTERY_LEVEL_ENTITY
+                            }
+                        ],
+                        None: {
+                            "work_state": 7,
+                            "fault": 12,
+                            "timer": 22,
+                            "end_default": 101,
+                            "learning": 102,
+                            "temp_current": 103,
+                            "light_current": 104,
+                            "temp_set": 105,
+                            "light_set": 106,
+                            "reset": 107,
+                            "pair": 108,
+                            "check": 109
                         }
                     }
                 )

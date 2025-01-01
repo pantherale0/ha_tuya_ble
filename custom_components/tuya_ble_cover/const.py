@@ -2,7 +2,6 @@
 from __future__ import annotations
 from dataclasses import dataclass
 
-from homeassistant.backports.enum import StrEnum
 from tuya_iot import TuyaCloudOpenAPIEndpoint
 from typing_extensions import Final
 
@@ -48,6 +47,10 @@ FINGERBOT_MODE_PUSH: Final = "push"
 FINGERBOT_MODE_SWITCH: Final = "switch"
 FINGERBOT_MODE_PROGRAM: Final = "program"
 FINGERBOT_BUTTON_EVENT: Final = "fingerbot_button_pressed"
+
+SENSOR_BATTERY_LEVEL_ENTITY = "battery"
+SENSOR_TEMPERATURE_ENTITY = "temperature"
+SENSOR_RSSI_ENTITY = "rssi"
 
 @dataclass
 class Country:

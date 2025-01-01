@@ -19,14 +19,7 @@ from .const import DOMAIN
 from .devices import TuyaBLECoordinator, TuyaBLEData, get_device_product_info
 
 PLATFORMS: list[Platform] = [
-    Platform.BUTTON,
-    Platform.CLIMATE,
-    Platform.NUMBER,
     Platform.SENSOR,
-    Platform.BINARY_SENSOR,
-    Platform.SELECT,
-    Platform.SWITCH,
-    Platform.TEXT,
     Platform.COVER,
 ]
 
@@ -50,14 +43,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     coordinator = TuyaBLECoordinator(hass, device)
 
-    '''
-    try:
-        await device.update()
-    except BLEAK_EXCEPTIONS as ex:
-        raise ConfigEntryNotReady(
-            f"Could not communicate with Tuya BLE device with address {address}"
-        ) from ex
-    '''
     hass.add_job(device.update())
 
     @callback
