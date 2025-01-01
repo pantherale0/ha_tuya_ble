@@ -1248,7 +1248,7 @@ class TuyaBLEDevice:
 
         if packet_num < self._input_expected_packet_num:
             _LOGGER.error(
-                "%s: Unexpcted packet (number %s) in notifications, " "expected %s",
+                "%s: Unexpected packet (number %s) in notifications, " "expected %s",
                 self.address,
                 packet_num,
                 self._input_expected_packet_num,
@@ -1274,7 +1274,7 @@ class TuyaBLEDevice:
 
         if len(self._input_buffer) > self._input_expected_length:
             _LOGGER.error(
-                "%s: Unexpcted length of data in notifications, "
+                "%s: Unexpected length of data in notifications, "
                 "received %s expected %s",
                 self.address,
                 len(self._input_buffer),
