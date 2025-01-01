@@ -1285,10 +1285,11 @@ class TuyaBLEDevice:
         elif len(self._input_buffer) == self._input_expected_length:
             try:
                 self._parse_input()
-            except TuyaBLEError:
+            except TuyaBLEError as err:
                 _LOGGER.error(
                     "%s: Error parsing input: %s",
                     self.address,
+                    err,
                     exc_info=True,
                 )
                 self._clean_input()
