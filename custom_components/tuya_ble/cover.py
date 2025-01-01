@@ -1,8 +1,10 @@
 """The Tuya BLE integration."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 
+from enum import IntEnum
 import logging
 
 from homeassistant.components.cover import (
@@ -11,7 +13,7 @@ from homeassistant.components.cover import (
     CoverEntity,
     STATE_CLOSED,
     STATE_OPEN,
-    ATTR_POSITION
+    ATTR_POSITION,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
@@ -24,10 +26,14 @@ from .tuya_ble import TuyaBLEDataPointType, TuyaBLEDevice
 
 _LOGGER = logging.getLogger(__name__)
 
-TUYA_COVER_STATE_MAP = {
-    0: STATE_OPEN,
-    2: STATE_CLOSED
-}
+TUYA_COVER_STATE_MAP = {0: STATE_OPEN, 2: STATE_CLOSED}
+
+
+class TuyaCoverState(IntEnum):
+    OPEN = 0
+    STOP = 1
+    CLOSE = 2
+
 
 @dataclass
 class TuyaBLECoverMapping:
@@ -75,32 +81,34 @@ class TuyaBLECategoryCoverMapping:
 mapping: dict[str, TuyaBLECategoryCoverMapping] = {
     "cl": TuyaBLECategoryCoverMapping(
         products={
-            **dict.fromkeys([
-                "4pbr8eig", "qqdxfdht"
+            **dict.fromkeys(
+                ["4pbr8eig", "qqdxfdht"],
+                [
+                    TuyaBLECoverMapping(  # BLE Blind Controller
+                        description=CoverEntityDescription(
+                            key="ble_blind_controller",
+                        ),
+                        cover_state_dp_id=1,
+                        cover_position_set_dp=2,
+                        cover_position_dp_id=3,
+                        cover_opening_mode_dp_id=4,
+                        cover_work_state_dp_id=7,
+                        cover_battery_dp_id=13,
+                        cover_motor_direction_dp_id=101,
+                        cover_set_upper_limit_dp_id=102,
+                        cover_factory_reset_dp_id=107,
+                    )
+                ],
+            ),
+            "kcy0x4pi": [
+                TuyaBLECoverMapping(
+                    description=CoverEntityDescription(key="ble_curtain_controller"),
+                    cover_state_dp_id=1,
+                    cover_position_dp_id=3,
+                    cover_position_set_dp=2,
+                    cover_battery_dp_id=13,
+                )
             ],
-            [TuyaBLECoverMapping( # BLE Blind Controller
-                description=CoverEntityDescription(
-                    key="ble_blind_controller",
-                ),
-                cover_state_dp_id=1,
-                cover_position_set_dp=2,
-                cover_position_dp_id=3,
-                cover_opening_mode_dp_id=4,
-                cover_work_state_dp_id=7,
-                cover_battery_dp_id=13,
-                cover_motor_direction_dp_id=101,
-                cover_set_upper_limit_dp_id=102,
-                cover_factory_reset_dp_id=107
-            )]),
-            "kcy0x4pi": [TuyaBLECoverMapping(
-                description=CoverEntityDescription(
-                    key="ble_curtain_controller"
-                ),
-                cover_state_dp_id=1,
-                cover_position_dp_id=3,
-                cover_position_set_dp=2,
-                cover_battery_dp_id=13
-            )]
         },
     ),
 }
@@ -140,12 +148,21 @@ class TuyaBLECover(TuyaBLEEntity, CoverEntity):
     @property
     def supported_features(self) -> CoverEntityFeature:
         """Return the supported features of the device."""
-        return CoverEntityFeature.CLOSE|CoverEntityFeature.OPEN|CoverEntityFeature.SET_POSITION|CoverEntityFeature.STOP
+        return (
+            CoverEntityFeature.CLOSE
+            | CoverEntityFeature.OPEN
+            | CoverEntityFeature.SET_POSITION
+            | CoverEntityFeature.STOP
+        )
 
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        _LOGGER.debug("Updated data for %s: %s", self._device.name, self._device.datapoints.__dict__())
+        _LOGGER.debug(
+            "Updated data for %s: %s",
+            self._device.name,
+            self._device.datapoints.__dict__(),
+        )
         if self._mapping.cover_state_dp_id != 0:
             datapoint = self._device.datapoints[self._mapping.cover_state_dp_id]
             if datapoint:
@@ -160,40 +177,55 @@ class TuyaBLECover(TuyaBLEEntity, CoverEntity):
         if self._mapping.cover_position_dp_id != 0:
             datapoint = self._device.datapoints[self._mapping.cover_position_dp_id]
             if datapoint:
-                self._attr_current_cover_position = 100 - int(datapoint.value) # reverse position
+                self._attr_current_cover_position = 100 - int(
+                    datapoint.value
+                )  # reverse position
                 if self._attr_current_cover_position == 0:
                     self._attr_is_closed = True
+                    self._attr_is_closing = False
                 if self._attr_current_cover_position == 100:
                     self._attr_is_closed = False
+                    self._attr_is_opening = False
 
         self.async_write_ha_state()
 
     async def async_open_cover(self, **kwargs) -> None:
         """Open a cover."""
-        await self.async_set_cover_position(position=100)
-        # sometimes the device does not update DP 1 so force the current state
-        if self._attr_current_cover_position != 100:
-            self._attr_is_opening = True
-            self.async_write_ha_state()
+        await self._update_cover_state(TuyaCoverState.OPEN)
 
     async def async_stop_cover(self, **kwargs: logging.Any) -> None:
         """Stop a cover."""
+        await self._update_cover_state(TuyaCoverState.STOP)
+
+    async def async_close_cover(self, **kwargs) -> None:
+        """Set new target temperature."""
+        await self._update_cover_state(TuyaCoverState.CLOSE)
+
+    async def _update_cover_state(self, state: TuyaCoverState) -> None:
         if self._mapping.cover_state_dp_id != 0:
             datapoint = self._device.datapoints.get_or_create(
                 self._mapping.cover_state_dp_id,
                 TuyaBLEDataPointType.DT_VALUE,
-                1,
+                state.value,
             )
             if datapoint:
-                self._hass.create_task(datapoint.set_value(1))
+                self._hass.create_task(datapoint.set_value(state.value))
+            self._update_ha_state_for_cover_state(state)
 
-    async def async_close_cover(self, **kwargs) -> None:
-        """Set new target temperature."""
-        await self.async_set_cover_position(position=0)
+    def _update_ha_state_for_cover_state(self, state: TuyaCoverState) -> None:
         # sometimes the device does not update DP 1 so force the current state
-        if self._attr_current_cover_position != 0:
+        self._attr_is_closed = False
+        self._attr_is_closing = False
+        self._attr_is_opening = False
+
+        if self._attr_current_cover_position == 0:
+            self._attr_is_closed = True
+
+        if state == TuyaCoverState.OPEN and self._attr_current_cover_position != 100:
+            self._attr_is_opening = True
+        elif state == TuyaCoverState.CLOSE and self._attr_current_cover_position != 0:
             self._attr_is_closing = True
-            self.async_write_ha_state()
+        self.async_write_ha_state()
 
     async def async_set_cover_position(self, **kwargs: logging.Any) -> None:
         """Set cover position"""
@@ -202,7 +234,7 @@ class TuyaBLECover(TuyaBLEEntity, CoverEntity):
             datapoint = self._device.datapoints.get_or_create(
                 self._mapping.cover_position_set_dp,
                 TuyaBLEDataPointType.DT_VALUE,
-                position
+                position,
             )
             if datapoint:
                 self._hass.create_task(datapoint.set_value(position))
