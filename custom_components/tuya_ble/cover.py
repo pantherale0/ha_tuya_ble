@@ -104,8 +104,8 @@ mapping: dict[str, TuyaBLECategoryCoverMapping] = {
                 TuyaBLECoverMapping(
                     description=CoverEntityDescription(key="ble_curtain_controller"),
                     cover_state_dp_id=1,
-                    cover_position_dp_id=3,
                     cover_position_set_dp=2,
+                    cover_position_dp_id=3,
                     cover_battery_dp_id=13,
                 )
             ],
