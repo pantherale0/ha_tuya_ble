@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime, timezone
 import hashlib
 import logging
 import secrets
 import time
 from collections.abc import Callable
 from struct import pack, unpack
+from typing import Any, Hashable
 
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
@@ -146,6 +148,7 @@ class TuyaBLEDataPoints:
         self._datapoints: dict[int, TuyaBLEDataPoint] = {}
         self._update_started: int = 0
         self._updated_datapoints: list[int] = []
+        self._last_data_received: datetime | None = None
 
     def __len__(self) -> int:
         return len(self._datapoints)
@@ -155,6 +158,10 @@ class TuyaBLEDataPoints:
 
     def __dict__(self) -> dict:
         return self._datapoints
+
+    @property
+    def last_data_received(self) -> datetime | None:
+        return self._last_data_received
 
     def has_id(self, id: int, type: TuyaBLEDataPointType | None = None) -> bool:
         return (id in self._datapoints) and (
@@ -192,6 +199,7 @@ class TuyaBLEDataPoints:
         type: TuyaBLEDataPointType,
         value: bytes | bool | int | str,
     ) -> None:
+        self._last_data_received = datetime.now(timezone.utc)
         dp = self._datapoints.get(dp_id)
         if dp:
             dp._update_from_device(timestamp, flags, type, value)
@@ -421,6 +429,21 @@ class TuyaBLEDevice:
     def datapoints(self) -> TuyaBLEDataPoints:
         """Get datapoints exposed by device."""
         return self._datapoints
+
+    @property
+    def datapoint_log_payload(self) -> dict[Hashable, Any]:
+        item = {}
+        for key, value in self.datapoints.__dict__().items():
+            if isinstance(value, TuyaBLEDataPoint):
+                printable_value = value.value
+            else:
+                printable_value = value
+            item[key] = printable_value
+        return item
+
+    @property
+    def last_data_received(self) -> datetime | None:
+        return self._datapoints.last_data_received
 
     def get_or_create_datapoint(
         self,
