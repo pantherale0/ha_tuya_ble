@@ -1,0 +1,13 @@
+# https://www.home-assistant.io/integrations/default_config/
+default_config:
+
+# https://www.home-assistant.io/integrations/logger/
+logger:
+  default: info
+  logs:
+    custom_components.tuya_ble_cover: debug
+
+# Enable VSCode debugging
+debugpy:
+  start: true
+  wait: true

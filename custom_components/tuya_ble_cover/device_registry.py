@@ -16,18 +16,26 @@ from .const import (
     SENSOR_BATTERY_LEVEL_ENTITY
 )
 
-@dataclass
 class TuyaBLEProductInfo:
     """Store a product info."""
+
     name: str
     manufacturer: str = DEVICE_DEF_MANUFACTURER
     datapoints: dict[Platform, dict[str, int] | list[dict[str, int]]] = {}
     entity_description: EntityDescription
 
-@dataclass
+    def __init__(self, name, manufacturer, datapoints, entity_description):
+        self.name = name
+        self.manufacturer = manufacturer
+        self.datapoints = datapoints
+        self.entity_description = entity_description
+
 class TuyaBLECategoryInfo:
+
     products: dict[str, TuyaBLEProductInfo]
-    info: TuyaBLEProductInfo | None = None
+
+    def __init__(self, products):
+        self.products = products
 
 devices_database: dict[str, TuyaBLECategoryInfo] = {
     "cl": TuyaBLECategoryInfo(
@@ -39,18 +47,19 @@ devices_database: dict[str, TuyaBLECategoryInfo] = {
                 ],
                 TuyaBLEProductInfo(
                     name="Blind Controller",
+                    manufacturer="Tuya",
                     entity_description=EntityDescription(
                         key="ble_blind_controller"
                     ),
                     datapoints={
                         Platform.COVER: {
-                            "state": 1,
                             "position_set": 2,
                             "current_position": 3,
                             "supported_features": (
                                 CoverEntityFeature.OPEN|CoverEntityFeature.CLOSE|
                                 CoverEntityFeature.SET_POSITION|CoverEntityFeature.STOP
-                            )
+                            ),
+                            "use_state_set": False
                         },
                         Platform.SENSOR: [
                             {
@@ -59,6 +68,7 @@ devices_database: dict[str, TuyaBLECategoryInfo] = {
                             }
                         ],
                         None: {
+                            "state": 1, # does not work on this controller
                             "unknown_1": 5,
                             "unknown_2": 103,
                             "unknown_3": 104,
@@ -77,6 +87,7 @@ devices_database: dict[str, TuyaBLECategoryInfo] = {
                 ],
                 TuyaBLEProductInfo(
                     name="Curtain Controller",
+                    manufacturer="Tuya",
                     entity_description=EntityDescription(
                         key="ble_curtain_controller"
                     ),
@@ -88,7 +99,8 @@ devices_database: dict[str, TuyaBLECategoryInfo] = {
                             "supported_features": (
                                 CoverEntityFeature.OPEN|CoverEntityFeature.CLOSE|
                                 CoverEntityFeature.SET_POSITION|CoverEntityFeature.STOP
-                            )
+                            ),
+                            "use_state_set": True
                         },
                         Platform.SENSOR: [
                             {

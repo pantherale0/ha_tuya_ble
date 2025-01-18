@@ -1,3 +1,4 @@
-homeassistant==2024.11.0
+homeassistant==2025.1.0
+tuya-device-sharing-sdk
 tuya-iot-py-sdk==0.6.6
 pycountry>23.0.0

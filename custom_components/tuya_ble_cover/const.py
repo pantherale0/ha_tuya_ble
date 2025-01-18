@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from tuya_iot import TuyaCloudOpenAPIEndpoint
 from typing_extensions import Final
 
-DOMAIN: Final = "tuya_ble"
+DOMAIN: Final = "tuya_ble_cover"
 
 DEVICE_METADATA_UUIDS: Final = "uuids"
 

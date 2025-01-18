@@ -52,6 +52,8 @@ class TuyaBLEData:
 class TuyaBLEEntity(CoordinatorEntity):
     """Tuya BLE base entity."""
 
+    _PLATFORM = None
+
     def __init__(
         self,
         hass: HomeAssistant,
@@ -75,6 +77,11 @@ class TuyaBLEEntity(CoordinatorEntity):
         )
 
     @property
+    def platform_config(self) -> dict:
+        """Return the platform configuration."""
+        return self._product.datapoints.get(self._PLATFORM, {})
+
+    @property
     def available(self) -> bool:
         """Return if entity is available."""
         return self._coordinator.connected
@@ -84,9 +91,9 @@ class TuyaBLEEntity(CoordinatorEntity):
         """Handle updated data from the coordinator."""
         self.async_write_ha_state()
 
-    def get_tuya_datapoint(self, datapoint, platform) -> int:
+    def get_tuya_datapoint(self, datapoint) -> int:
         """Return a datapoint from config."""
-        return self._product.datapoints.get(platform, {}).get(datapoint, 0)
+        return self.platform_config.get(datapoint)
 
 class TuyaBLECoordinator(DataUpdateCoordinator[None]):
     """Data coordinator for receiving Tuya BLE updates."""
